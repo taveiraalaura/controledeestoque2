@@ -1,4 +1,4 @@
-import { Material, Movement, Requisition, StockKPIs, User, Sector } from '../types.ts';
+import { Material, Movement, Requisition, StockKPIs, User } from '../types.ts';
 
 const API_BASE = '/api';
 
@@ -150,64 +150,6 @@ export async function cancelRequisition(id: number, reason?: string): Promise<Re
 export async function fetchKPIs(): Promise<StockKPIs> {
   const res = await fetch(`${API_BASE}/kpis`);
   if (!res.ok) throw new Error('Falha ao obter indicadores de estoque.');
-  return res.json();
-}
-
-// Sectors API
-export async function fetchSectors(search?: string): Promise<Sector[]> {
-  const params = new URLSearchParams();
-  if (search) params.append('search', search);
-  const res = await fetch(`${API_BASE}/sectors?${params.toString()}`);
-  if (!res.ok) throw new Error('Falha ao carregar setores.');
-  return res.json();
-}
-
-export async function createSector(data: Partial<Sector>): Promise<Sector> {
-  const res = await fetch(`${API_BASE}/sectors`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Falha ao cadastrar setor.');
-  }
-  return res.json();
-}
-
-export async function updateSector(id: number, data: Partial<Sector>): Promise<Sector> {
-  const res = await fetch(`${API_BASE}/sectors/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Falha ao atualizar setor.');
-  }
-  return res.json();
-}
-
-export async function deleteSector(id: number): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/sectors/${id}`, {
-    method: 'DELETE'
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Falha ao excluir setor.');
-  }
-  return res.json();
-}
-
-// Reset Demo Data
-export async function resetDemoData(): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${API_BASE}/demo/reset`, {
-    method: 'POST'
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Falha ao recarregar dados demo.');
-  }
   return res.json();
 }
 

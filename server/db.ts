@@ -74,51 +74,12 @@ export function initDatabase() {
       quantity_delivered REAL DEFAULT 0,
       notes TEXT
     );
-
-    CREATE TABLE IF NOT EXISTS sectors (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code TEXT UNIQUE NOT NULL,
-      name TEXT NOT NULL,
-      responsible TEXT NOT NULL,
-      email TEXT,
-      phone TEXT,
-      location TEXT,
-      budget_limit REAL DEFAULT 0.00,
-      is_active INTEGER DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
-    );
   `);
 
   // Seed default data if users table is empty
   const userCount = db.prepare('SELECT count(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {
     seedDefaultData();
-  } else {
-    // Check if sectors are seeded
-    const sectorCount = db.prepare('SELECT count(*) as count FROM sectors').get() as { count: number };
-    if (sectorCount.count === 0) {
-      seedSectorsOnly();
-    }
-  }
-}
-
-function seedSectorsOnly() {
-  const insertSector = db.prepare(`
-    INSERT INTO sectors (code, name, responsible, email, phone, location, budget_limit, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-  `);
-
-  const initialSectors = [
-    { code: 'SET-01', name: 'Manutenção Industrial', resp: 'Roberto Alves de Souza', email: 'manutencao@empresa.com', phone: '(11) 98765-4321', loc: 'Galpão Norte - Ala B', budget: 25000 },
-    { code: 'SET-02', name: 'Instalações e Elétrica', resp: 'Mariana Ribeiro Costa', email: 'eletrica@empresa.com', phone: '(11) 98765-1122', loc: 'Bloco B - Subsolo', budget: 18000 },
-    { code: 'SET-03', name: 'Obras e Engenharia Civil', resp: 'André Luis Pereira', email: 'engenharia@empresa.com', phone: '(11) 99887-3344', loc: 'Prédio de Engenharia', budget: 40000 },
-    { code: 'SET-04', name: 'Operações e Logística', resp: 'Marcos Vinícius Silva', email: 'logistica@empresa.com', phone: '(11) 97766-5544', loc: 'Centro de Distribuição', budget: 15000 },
-    { code: 'SET-05', name: 'Segurança do Trabalho (SESMT)', resp: 'Fabiana Guimarães', email: 'sst@empresa.com', phone: '(11) 96655-4433', loc: 'Ambulatório Central', budget: 12000 },
-    { code: 'SET-06', name: 'Administração & Diretoria', resp: 'Patrícia Fontes', email: 'adm@empresa.com', phone: '(11) 95544-3322', loc: 'Edifício Sede 3º Andar', budget: 10000 },
-  ];
-
-  for (const s of initialSectors) {
-    insertSector.run(s.code, s.name, s.resp, s.email, s.phone, s.loc, s.budget);
   }
 }
 
@@ -232,9 +193,6 @@ function seedDefaultData() {
   insertItem.run(req2Id, 8, 2, 0, 'Aguardando liberação');
   insertItem.run(req2Id, 9, 4, 0, 'Disjuntores 32A');
   insertItem.run(req2Id, 10, 5, 0, 'Fitas isolantes');
-
-  // Sectors
-  seedSectorsOnly();
 
   console.log('Database seeded successfully.');
 }
@@ -812,129 +770,3 @@ export function loginUser(username: string, password?: string) {
     role: user.role
   };
 }
-
-// Sectors (Gestão de Setores)
-export function getAllSectors(search?: string) {
-  let sql = `
-    SELECT 
-      s.id, s.code, s.name, s.responsible, s.email, s.phone, s.location, s.budget_limit, s.is_active, s.created_at,
-      COUNT(r.id) AS total_requisitions,
-      SUM(CASE WHEN r.status = 'PENDENTE' THEN 1 ELSE 0 END) AS pending_requisitions
-    FROM sectors s
-    LEFT JOIN requisitions r ON r.department = s.name
-    WHERE 1=1
-  `;
-  const params: any[] = [];
-  if (search) {
-    sql += ` AND (s.code LIKE ? OR s.name LIKE ? OR s.responsible LIKE ? OR s.location LIKE ?)`;
-    const term = `%${search}%`;
-    params.push(term, term, term, term);
-  }
-  sql += ` GROUP BY s.id ORDER BY s.code ASC`;
-  return db.prepare(sql).all(...params);
-}
-
-export function getSectorById(id: number) {
-  return db.prepare(`SELECT * FROM sectors WHERE id = ?`).get(id);
-}
-
-export function createSector(data: {
-  code: string;
-  name: string;
-  responsible: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  budget_limit?: number;
-}) {
-  const existing = db.prepare(`SELECT id FROM sectors WHERE code = ?`).get(data.code.trim().toUpperCase());
-  if (existing) {
-    throw new Error(`Código de setor "${data.code}" já existe.`);
-  }
-
-  const stmt = db.prepare(`
-    INSERT INTO sectors (code, name, responsible, email, phone, location, budget_limit, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-  `);
-
-  const result = stmt.run(
-    data.code.trim().toUpperCase(),
-    data.name.trim(),
-    data.responsible.trim(),
-    data.email?.trim() || null,
-    data.phone?.trim() || null,
-    data.location?.trim() || null,
-    Number(data.budget_limit) || 0
-  );
-
-  return getSectorById(Number(result.lastInsertRowid));
-}
-
-export function updateSector(id: number, data: Partial<{
-  code: string;
-  name: string;
-  responsible: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  budget_limit?: number;
-  is_active?: number;
-}>) {
-  const current = getSectorById(id) as any;
-  if (!current) throw new Error('Setor não encontrado.');
-
-  if (data.code && data.code !== current.code) {
-    const existing = db.prepare(`SELECT id FROM sectors WHERE code = ? AND id != ?`).get(data.code.trim().toUpperCase(), id);
-    if (existing) throw new Error(`Código de setor "${data.code}" já em uso.`);
-  }
-
-  const stmt = db.prepare(`
-    UPDATE sectors
-    SET code = ?, name = ?, responsible = ?, email = ?, phone = ?, location = ?, budget_limit = ?, is_active = ?
-    WHERE id = ?
-  `);
-
-  stmt.run(
-    data.code ? data.code.trim().toUpperCase() : current.code,
-    data.name ? data.name.trim() : current.name,
-    data.responsible ? data.responsible.trim() : current.responsible,
-    data.email !== undefined ? (data.email?.trim() || null) : current.email,
-    data.phone !== undefined ? (data.phone?.trim() || null) : current.phone,
-    data.location !== undefined ? (data.location?.trim() || null) : current.location,
-    data.budget_limit !== undefined ? Number(data.budget_limit) : current.budget_limit,
-    data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active,
-    id
-  );
-
-  return getSectorById(id);
-}
-
-export function deleteSector(id: number) {
-  const sector = getSectorById(id) as any;
-  if (!sector) throw new Error('Setor não encontrado.');
-
-  const hasReqs = db.prepare(`SELECT count(*) as count FROM requisitions WHERE department = ?`).get(sector.name) as { count: number };
-  if (hasReqs.count > 0) {
-    throw new Error(`Não é possível excluir o setor "${sector.name}" pois existem ${hasReqs.count} requisição(ões) vinculada(s).`);
-  }
-
-  db.prepare(`DELETE FROM sectors WHERE id = ?`).run(id);
-  return { success: true, message: `Setor "${sector.name}" excluído com sucesso.` };
-}
-
-// Reset Database to Initial Demo State (Dados Demo)
-export function resetDatabaseToDemo() {
-  db.exec(`
-    DELETE FROM requisition_items;
-    DELETE FROM requisitions;
-    DELETE FROM movements;
-    DELETE FROM materials;
-    DELETE FROM sectors;
-    DELETE FROM users;
-    DELETE FROM sqlite_sequence;
-  `);
-
-  seedDefaultData();
-  return { success: true, message: 'Dados de demonstração recarregados com sucesso!' };
-}
-

@@ -1,35 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { EnterpriseHeader } from './components/EnterpriseHeader.tsx';
-import { EnterpriseSidebar, AppModule } from './components/EnterpriseSidebar.tsx';
+import { Header } from './components/Header.tsx';
 import { Footer } from './components/Footer.tsx';
 import { KPIsView } from './components/KPIsView.tsx';
 import { StockReportView } from './components/StockReportView.tsx';
 import { MovementsView } from './components/MovementsView.tsx';
 import { RequisitionsView } from './components/RequisitionsView.tsx';
-import { SectorsView } from './components/SectorsView.tsx';
 import { LoginModal } from './components/LoginModal.tsx';
 import { MaterialModal } from './components/MaterialModal.tsx';
 import { PrintStockReportModal } from './components/PrintStockReportModal.tsx';
 import { PrintRequisitionModal } from './components/PrintRequisitionModal.tsx';
 import { SetupGuideModal } from './components/SetupGuideModal.tsx';
-import { BestPracticesModal } from './components/BestPracticesModal.tsx';
-import { ServerErrorScreen } from './components/ServerErrorScreen.tsx';
 import {
   fetchMaterials,
   fetchMovements,
   fetchRequisitions,
   fetchKPIs,
-  fetchSectors,
   createMaterial,
   updateMaterial,
   createMovement,
   createRequisition,
   attendRequisition,
   cancelRequisition,
-  createSector,
-  updateSector,
-  deleteSector,
-  resetDemoData
 } from './lib/api.ts';
 import {
   Material,
@@ -37,8 +28,7 @@ import {
   Requisition,
   StockKPIs,
   User,
-  Sector,
-  MovementType
+  MovementType,
 } from './types.ts';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 
@@ -62,22 +52,18 @@ export default function App() {
     };
   });
 
-  // Navigation Module State (Enterprise Navigation)
-  const [activeModule, setActiveModule] = useState<AppModule>('kpis');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Navigation Tab State
+  const [activeTab, setActiveTab] = useState<'kpis' | 'stock' | 'movements' | 'requisitions'>('kpis');
 
   // Application Data
   const [materials, setMaterials] = useState<Material[]>([]);
-  const [sectors, setSectors] = useState<Sector[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [kpis, setKpis] = useState<StockKPIs | null>(null);
 
-  // Loading & Error States
+  // Loading States
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [resettingDemo, setResettingDemo] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   // Notification Toast
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -92,7 +78,6 @@ export default function App() {
   // Modals State
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
-  const [showBestPracticesModal, setShowBestPracticesModal] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [materialToEdit, setMaterialToEdit] = useState<Material | null>(null);
 
@@ -110,25 +95,20 @@ export default function App() {
     else setRefreshing(true);
 
     try {
-      const [mats, sects, movs, reqs, kpiData] = await Promise.all([
+      const [mats, movs, reqs, kpiData] = await Promise.all([
         fetchMaterials(),
-        fetchSectors().catch(() => []),
         fetchMovements(),
         fetchRequisitions(),
-        fetchKPIs()
+        fetchKPIs(),
       ]);
 
       setMaterials(mats);
-      setSectors(sects);
       setMovements(movs);
       setRequisitions(reqs);
       setKpis(kpiData);
-      setServerError(null);
     } catch (err: any) {
       console.error('Failed to load application data', err);
-      const errMsg = err.message || 'Erro ao comunicar com o servidor';
-      setServerError(errMsg);
-      showToast('error', errMsg);
+      showToast('error', 'Erro ao carregar dados do almoxarifado: ' + err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -156,66 +136,21 @@ export default function App() {
     setShowLoginModal(true);
   };
 
-  // Demo Reset Handler
-  const handleResetDemo = async () => {
-    if (!confirm('Deseja recarregar a base com os dados iniciais de demonstração (SKUs, setores, requisições)?')) {
-      return;
-    }
-    setResettingDemo(true);
-    try {
-      await resetDemoData();
-      showToast('success', 'Base de demonstração recarregada com sucesso!');
-      await loadAllData(true);
-    } catch (err: any) {
-      showToast('error', err.message || 'Falha ao recarregar dados demo.');
-    } finally {
-      setResettingDemo(false);
-    }
-  };
-
   // Material Actions
   const handleSaveMaterial = async (data: Partial<Material>) => {
     try {
       if (materialToEdit) {
         await updateMaterial(materialToEdit.id, data);
-        showToast('success', `Material "${data.description || materialToEdit.description}" atualizado!`);
+        showToast('success', `Material ${data.description || materialToEdit.code} atualizado com sucesso.`);
       } else {
         await createMaterial(data);
-        showToast('success', `Material "${data.description}" cadastrado com sucesso!`);
+        showToast('success', `Material ${data.code} cadastrado com sucesso.`);
       }
       setShowMaterialModal(false);
       setMaterialToEdit(null);
       await loadAllData(true);
     } catch (err: any) {
       showToast('error', err.message || 'Falha ao salvar material.');
-      throw err;
-    }
-  };
-
-  // Sector Actions
-  const handleSaveSector = async (data: Partial<Sector>, id?: number) => {
-    try {
-      if (id) {
-        await updateSector(id, data);
-        showToast('success', `Setor "${data.name}" atualizado com sucesso!`);
-      } else {
-        await createSector(data);
-        showToast('success', `Setor "${data.name}" cadastrado com sucesso!`);
-      }
-      await loadAllData(true);
-    } catch (err: any) {
-      showToast('error', err.message || 'Falha ao salvar setor.');
-      throw err;
-    }
-  };
-
-  const handleDeleteSector = async (id: number) => {
-    try {
-      await deleteSector(id);
-      showToast('success', 'Setor excluído com sucesso.');
-      await loadAllData(true);
-    } catch (err: any) {
-      showToast('error', err.message || 'Falha ao excluir setor.');
       throw err;
     }
   };
@@ -234,10 +169,9 @@ export default function App() {
   }) => {
     try {
       const result = await createMovement(data);
-      const actionText = data.type === 'ENTRADA' ? 'Entrada registrada' : 'Saída registrada';
       showToast(
         'success',
-        `${actionText} com sucesso! Novo saldo físico: ${result.newStock}`
+        `Movimentação de ${data.type} registrada com sucesso! Novo saldo: ${result.newStock} unidades.`
       );
       setPreSelectedMaterial(null);
       await loadAllData(true);
@@ -296,32 +230,30 @@ export default function App() {
     return <LoginModal onLoginSuccess={handleLoginSuccess} />;
   }
 
-  const pendingReqsCount = requisitions.filter((r) => r.status === 'PENDENTE').length;
-  const lowStockCount = kpis?.lowStockCount || 0;
-
   return (
-    <div className="min-h-screen bg-[#070A11] text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-4 right-4 z-50 max-w-md w-full no-print animate-in fade-in slide-in-from-top-2 duration-300">
           <div
-            className={`p-4 rounded-xl shadow-2xl border flex items-start gap-3 backdrop-blur-md ${
+            className={`p-4 rounded-xl shadow-lg border flex items-start gap-3 ${
               toast.type === 'success'
-                ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200'
-                : 'bg-rose-950/90 border-rose-500/40 text-rose-200'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                : 'bg-red-50 border-red-300 text-red-900'
             }`}
           >
             {toast.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
             )}
-            <div className="flex-1 text-xs font-semibold leading-relaxed">
+            <div className="flex-1 text-xs font-medium leading-relaxed">
               {toast.message}
             </div>
             <button
               onClick={() => setToast(null)}
-              className="p-1 text-slate-400 hover:text-white rounded-md cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-700 rounded-md cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -329,126 +261,80 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Enterprise Header */}
-      <EnterpriseHeader
+      {/* Main Header with Navigation */}
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         currentUser={currentUser}
         onLogout={handleLogout}
-        onOpenBestPractices={() => setShowBestPracticesModal(true)}
-        onResetDemo={handleResetDemo}
-        resettingDemo={resettingDemo}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
+        onOpenSetup={() => setShowSetupModal(true)}
       />
 
-      {/* Main Content Layout with Left Sidebar */}
-      <div className="flex-1 flex flex-col md:flex-row w-full max-w-[1600px] mx-auto">
-        {/* Enterprise Sidebar */}
-        <div className={`${mobileMenuOpen ? 'block' : 'hidden'} md:block`}>
-          <EnterpriseSidebar
-            activeModule={activeModule}
-            setActiveModule={(mod) => {
-              setActiveModule(mod);
-              setMobileMenuOpen(false);
-            }}
-            onOpenBestPractices={() => setShowBestPracticesModal(true)}
-            pendingRequisitionsCount={pendingReqsCount}
-            lowStockCount={lowStockCount}
+      {/* Main View Container */}
+      <main id="main-content" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+        {activeTab === 'kpis' && (
+          <KPIsView
+            kpis={kpis}
+            loading={loading || refreshing}
+            onRefresh={() => loadAllData(true)}
+            onNavigateToStock={() => setActiveTab('stock')}
+            onNavigateToMovements={() => setActiveTab('movements')}
           />
-        </div>
+        )}
 
-        {/* Central View Area */}
-        <main id="main-content" className="flex-1 p-4 sm:p-6 overflow-x-hidden min-w-0">
-          {/* Server Connection Error Screen (when error happens and no data) */}
-          {serverError && materials.length === 0 ? (
-            <ServerErrorScreen
-              error={serverError}
-              onRetry={() => loadAllData()}
-              onResetDemo={handleResetDemo}
-              retrying={loading}
-            />
-          ) : (
-            <>
-              {activeModule === 'kpis' && (
-                <KPIsView
-                  kpis={kpis}
-                  loading={loading || refreshing}
-                  onRefresh={() => loadAllData(true)}
-                  onNavigateToStock={() => setActiveModule('materials')}
-                  onNavigateToMovements={() => setActiveModule('movements')}
-                />
-              )}
+        {activeTab === 'stock' && (
+          <StockReportView
+            materials={materials}
+            loading={loading}
+            onOpenNewMaterial={() => {
+              setMaterialToEdit(null);
+              setShowMaterialModal(true);
+            }}
+            onEditMaterial={(mat) => {
+              setMaterialToEdit(mat);
+              setShowMaterialModal(true);
+            }}
+            onOpenMovementForMaterial={(mat) => {
+              setPreSelectedMaterial(mat);
+              setActiveTab('movements');
+            }}
+            onOpenPrintReport={(filteredList, category) => {
+              setPrintStockMaterials(filteredList);
+              setPrintStockCategory(category);
+            }}
+          />
+        )}
 
-              {(activeModule === 'materials' || activeModule === 'reports') && (
-                <StockReportView
-                  materials={materials}
-                  loading={loading}
-                  onOpenNewMaterial={() => {
-                    setMaterialToEdit(null);
-                    setShowMaterialModal(true);
-                  }}
-                  onEditMaterial={(mat) => {
-                    setMaterialToEdit(mat);
-                    setShowMaterialModal(true);
-                  }}
-                  onOpenMovementForMaterial={(mat) => {
-                    setPreSelectedMaterial(mat);
-                    setActiveModule('movements');
-                  }}
-                  onOpenPrintReport={(filteredList, category) => {
-                    setPrintStockMaterials(filteredList);
-                    setPrintStockCategory(category);
-                  }}
-                />
-              )}
+        {activeTab === 'movements' && (
+          <MovementsView
+            movements={movements}
+            materials={materials}
+            loading={loading}
+            currentUser={currentUser}
+            preSelectedMaterial={preSelectedMaterial}
+            onRecordMovement={handleRecordMovement}
+            onClearPreSelectedMaterial={() => setPreSelectedMaterial(null)}
+          />
+        )}
 
-              {activeModule === 'sectors' && (
-                <SectorsView
-                  sectors={sectors}
-                  loading={loading}
-                  onRefresh={() => loadAllData(true)}
-                  onSaveSector={handleSaveSector}
-                  onDeleteSector={handleDeleteSector}
-                  onNavigateToRequisitions={() => setActiveModule('requisitions')}
-                />
-              )}
-
-              {activeModule === 'movements' && (
-                <MovementsView
-                  movements={movements}
-                  materials={materials}
-                  loading={loading}
-                  currentUser={currentUser}
-                  preSelectedMaterial={preSelectedMaterial}
-                  onRecordMovement={handleRecordMovement}
-                  onClearPreSelectedMaterial={() => setPreSelectedMaterial(null)}
-                />
-              )}
-
-              {activeModule === 'requisitions' && (
-                <RequisitionsView
-                  requisitions={requisitions}
-                  materials={materials}
-                  loading={loading}
-                  currentUser={currentUser}
-                  onCreateRequisition={handleCreateRequisition}
-                  onAttendRequisition={handleAttendRequisition}
-                  onCancelRequisition={handleCancelRequisition}
-                  onOpenPrintRequisition={(req) => setPrintRequisitionData(req)}
-                />
-              )}
-            </>
-          )}
-        </main>
-      </div>
+        {activeTab === 'requisitions' && (
+          <RequisitionsView
+            requisitions={requisitions}
+            materials={materials}
+            loading={loading}
+            currentUser={currentUser}
+            onCreateRequisition={handleCreateRequisition}
+            onAttendRequisition={handleAttendRequisition}
+            onCancelRequisition={handleCancelRequisition}
+            onOpenPrintRequisition={(req) => setPrintRequisitionData(req)}
+          />
+        )}
+      </main>
 
       {/* Mandatory Footer with "Laura Taveira - Responsável Técnico" */}
       <Footer />
 
       {/* Modals */}
-      {showBestPracticesModal && (
-        <BestPracticesModal onClose={() => setShowBestPracticesModal(false)} />
-      )}
-
       {showMaterialModal && (
         <MaterialModal
           materialToEdit={materialToEdit}
@@ -478,6 +364,7 @@ export default function App() {
       {showSetupModal && (
         <SetupGuideModal onClose={() => setShowSetupModal(false)} />
       )}
+
     </div>
   );
 }

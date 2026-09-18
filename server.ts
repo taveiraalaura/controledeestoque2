@@ -15,13 +15,7 @@ import {
   attendRequisition,
   cancelRequisition,
   getKPIs,
-  loginUser,
-  getAllSectors,
-  getSectorById,
-  createSector,
-  updateSector,
-  deleteSector,
-  resetDatabaseToDemo
+  loginUser
 } from './server/db.ts';
 
 // Initialize SQLite database and tables
@@ -251,7 +245,7 @@ async function startServer() {
   });
 
   // KPIs & Performance Indicators (Indicadores de Desempenho)
-  const handleKpis = (req: express.Request, res: express.Response) => {
+  app.get('/api/kpis', (req, res) => {
     try {
       const metrics = getKPIs();
       res.json(metrics);
@@ -259,90 +253,10 @@ async function startServer() {
       console.error('Erro ao calcular KPIs:', error);
       res.status(500).json({ error: error.message || 'Erro ao carregar indicadores.' });
     }
-  };
-  app.get('/api/kpis', handleKpis);
-  app.get('/api/dashboard', handleKpis);
-  app.get('/api/indicadores', handleKpis);
-
-  // Sectors (Gestão de Setores / Departamentos)
-  const handleGetSectors = (req: express.Request, res: express.Response) => {
-    try {
-      const search = req.query.search as string | undefined;
-      const sectors = getAllSectors(search);
-      res.json(sectors);
-    } catch (error: any) {
-      console.error('Erro ao listar setores:', error);
-      res.status(500).json({ error: error.message || 'Erro ao buscar setores.' });
-    }
-  };
-  app.get('/api/sectors', handleGetSectors);
-  app.get('/api/setores', handleGetSectors);
-
-  const handleGetSectorById = (req: express.Request, res: express.Response) => {
-    try {
-      const id = Number(req.params.id);
-      const sector = getSectorById(id);
-      if (!sector) {
-        return res.status(404).json({ error: 'Setor não encontrado.' });
-      }
-      res.json(sector);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message || 'Erro ao buscar setor.' });
-    }
-  };
-  app.get('/api/sectors/:id', handleGetSectorById);
-  app.get('/api/setores/:id', handleGetSectorById);
-
-  const handleCreateSector = (req: express.Request, res: express.Response) => {
-    try {
-      const { code, name, responsible, email, phone, location, budget_limit } = req.body;
-      if (!code || !name || !responsible) {
-        return res.status(400).json({ error: 'Código, nome do setor e responsável são obrigatórios.' });
-      }
-      const newSector = createSector({
-        code,
-        name,
-        responsible,
-        email,
-        phone,
-        location,
-        budget_limit: Number(budget_limit) || 0
-      });
-      res.status(201).json(newSector);
-    } catch (error: any) {
-      console.error('Erro ao criar setor:', error);
-      res.status(400).json({ error: error.message || 'Falha ao cadastrar setor.' });
-    }
-  };
-  app.post('/api/sectors', handleCreateSector);
-  app.post('/api/setores', handleCreateSector);
-
-  const handleUpdateSector = (req: express.Request, res: express.Response) => {
-    try {
-      const id = Number(req.params.id);
-      const updated = updateSector(id, req.body);
-      res.json(updated);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message || 'Falha ao atualizar setor.' });
-    }
-  };
-  app.put('/api/sectors/:id', handleUpdateSector);
-  app.put('/api/setores/:id', handleUpdateSector);
-
-  const handleDeleteSector = (req: express.Request, res: express.Response) => {
-    try {
-      const id = Number(req.params.id);
-      const result = deleteSector(id);
-      res.json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message || 'Falha ao excluir setor.' });
-    }
-  };
-  app.delete('/api/sectors/:id', handleDeleteSector);
-  app.delete('/api/setores/:id', handleDeleteSector);
+  });
 
   // Stock Position Report Data (Relatório de Posição de Estoque)
-  const handleStockReport = (req: express.Request, res: express.Response) => {
+  app.get('/api/reports/stock', (req, res) => {
     try {
       const category = req.query.category as string | undefined;
       const search = req.query.search as string | undefined;
@@ -363,57 +277,6 @@ async function startServer() {
       console.error('Erro ao gerar relatório:', error);
       res.status(500).json({ error: error.message || 'Erro ao gerar relatório de estoque.' });
     }
-  };
-  app.get('/api/reports/stock', handleStockReport);
-  app.get('/api/relatorios/estoque', handleStockReport);
-
-  // Demo Reset & Seed Data Endpoint (Dados Demo)
-  const handleResetDemo = (req: express.Request, res: express.Response) => {
-    try {
-      const result = resetDatabaseToDemo();
-      res.json(result);
-    } catch (error: any) {
-      console.error('Erro ao resetar dados demo:', error);
-      res.status(500).json({ error: error.message || 'Falha ao recarregar dados demo.' });
-    }
-  };
-  app.post('/api/demo/reset', handleResetDemo);
-  app.post('/api/demo', handleResetDemo);
-  app.post('/api/seed', handleResetDemo);
-  app.get('/api/demo/reset', handleResetDemo);
-
-  // Additional route aliases in Portuguese
-  app.get('/api/materiais', (req, res) => {
-    const category = req.query.category as string | undefined;
-    const search = req.query.search as string | undefined;
-    res.json(getAllMaterials(category, search));
-  });
-  app.get('/api/movimentacoes', (req, res) => {
-    const type = req.query.type as string | undefined;
-    const search = req.query.search as string | undefined;
-    const material_id = req.query.material_id ? Number(req.query.material_id) : undefined;
-    res.json(getAllMovements({ type, search, material_id }));
-  });
-  app.get('/api/requisicoes', (req, res) => {
-    const status = req.query.status as string | undefined;
-    res.json(getAllRequisitions(status));
-  });
-
-  // Catch-all 404 for unhandled API endpoints
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({
-      error: `Endpoint '${req.originalUrl}' não encontrado no servidor.`,
-      available_endpoints: [
-        '/api/health',
-        '/api/kpis',
-        '/api/materials',
-        '/api/sectors',
-        '/api/movements',
-        '/api/requisitions',
-        '/api/reports/stock',
-        '/api/demo/reset'
-      ]
-    });
   });
 
   // Vite middleware for development

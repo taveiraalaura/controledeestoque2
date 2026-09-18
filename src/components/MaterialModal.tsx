@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Save, Boxes, AlertCircle, Package } from 'lucide-react';
+import { X, Plus, Save, Boxes, AlertCircle } from 'lucide-react';
 import { Material } from '../types.ts';
 
 interface MaterialModalProps {
@@ -77,19 +77,20 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
+        
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-amber-400" />
-            <h3 className="font-bold text-white text-sm sm:text-base">
+            <Boxes className="w-5 h-5 text-blue-600" />
+            <h3 className="font-bold text-slate-900 text-sm sm:text-base">
               {isEditing ? 'Editar Material de Estoque' : 'Cadastrar Novo Material'}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -97,16 +98,17 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          
           {error && (
-            <div className="p-3 bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs rounded-xl flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Código / SKU *
               </label>
               <input
@@ -116,19 +118,19 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="Ex: EPI-015"
-                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 font-mono uppercase outline-none text-white"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono uppercase outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Categoria *
               </label>
               <select
                 id="select-material-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 outline-none text-slate-200"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -138,7 +140,7 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
               Descrição Completa do Material *
             </label>
             <input
@@ -148,20 +150,20 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ex: Luva de Vaqueta Mista Tamanho G"
-              className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 outline-none text-white"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Unidade *
               </label>
               <select
                 id="select-material-unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 outline-none text-slate-200 font-mono font-bold"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white font-semibold"
               >
                 {UNITS.map((u) => (
                   <option key={u} value={u}>{u}</option>
@@ -171,7 +173,7 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
 
             {!isEditing && (
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Estoque Inicial
                 </label>
                 <input
@@ -181,13 +183,13 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                   step="any"
                   value={currentQuantity}
                   onChange={(e) => setCurrentQuantity(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 outline-none font-bold text-white"
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Estoque Mínimo *
               </label>
               <input
@@ -198,62 +200,61 @@ export const MaterialModal: React.FC<MaterialModalProps> = ({
                 required
                 value={minQuantity}
                 onChange={(e) => setMinQuantity(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 outline-none font-bold text-amber-400"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Preço Unitário Médio (R$)
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Valor Unitário (R$)
               </label>
               <input
-                id="input-material-price"
+                id="input-material-unit-price"
                 type="number"
                 min="0"
                 step="0.01"
                 value={unitPrice}
                 onChange={(e) => setUnitPrice(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 outline-none font-mono text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Localização no Almoxarifado
-              </label>
-              <input
-                id="input-material-location"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Ex: Prateleira B-03, Gaveta 12"
-                className="w-full px-3 py-2 text-sm bg-slate-950 border border-slate-700 rounded-xl focus:border-amber-500 outline-none text-white"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               />
             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Localização no Almoxarifado
+            </label>
+            <input
+              id="input-material-location"
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Ex: Prateleira B-3, Gaveta 02"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
-              id="btn-save-material-submit"
+              id="btn-save-material"
               type="submit"
               disabled={saving}
-              className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
               <span>{saving ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Cadastrar Material'}</span>
             </button>
           </div>
+
         </form>
+
       </div>
     </div>
   );

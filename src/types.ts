@@ -115,21 +115,6 @@ export interface User {
   role: string;
 }
 
-export interface Sector {
-  id: number;
-  code: string;
-  name: string;
-  responsible: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  budget_limit: number;
-  is_active: number;
-  created_at?: string;
-  total_requisitions?: number;
-  pending_requisitions?: number;
-}
-
 export interface AuthState {
   user: User | null;
   token: string | null;
